@@ -1,0 +1,1 @@
+avalanche-lib @ git+https://github.com/ContinualAI/avalanche@b354713efa0fec11750460d8a3127186c1fa1879
