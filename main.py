@@ -1,15 +1,14 @@
-from avalanche.benchmarks.classic import SplitCIFAR10
+from avalanche.benchmarks.classic import SplitCIFAR10, SplitCIFAR100
 from avalanche.evaluation.metrics import forgetting_metrics, accuracy_metrics, \
-    loss_metrics, timing_metrics, cpu_usage_metrics, StreamConfusionMatrix, \
-    disk_usage_metrics, gpu_usage_metrics
+    loss_metrics, timing_metrics, StreamConfusionMatrix
 from avalanche.logging import InteractiveLogger, TextLogger, TensorboardLogger
 from avalanche.training.plugins import EvaluationPlugin
-from avalanche.training import Naive, ER_ACE
-from avalanche.models.slim_resnet18 import SlimResNet18
+from avalanche.training import Naive#, ER_ACE
 import torch
 from torch.optim import SGD
 from torch.nn import CrossEntropyLoss
 
+from src.er_ace.er_ace import ER_ACE
 from src.er_aml.er_aml import ER_AML
 from src.model.resnet18 import ResNet18
 
@@ -18,23 +17,18 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 def main():
     num_workers = 4
-    benchmark = SplitCIFAR10(n_experiences=5, seed=0)
-
-    # tb_logger = TensorboardLogger()
-    interactive_logger = InteractiveLogger()
-    text_logger = TextLogger(open('log.log', 'a'))
-
-    eval_plugin = EvaluationPlugin(
-        accuracy_metrics(minibatch=True, epoch=True, experience=True, stream=True),
-        loss_metrics(minibatch=True, epoch=True, experience=True, stream=True),
-        timing_metrics(epoch=True),
-        forgetting_metrics(experience=True, stream=True),
-        StreamConfusionMatrix(num_classes=benchmark.n_classes, save_image=False),
-        loggers=[text_logger, interactive_logger]
-    )
+    n_classes = 100
+    benchmark = SplitCIFAR100(n_experiences=20, seed=0)
 
     # MODEL CREATION
-    model = ResNet18(10).to(device)
+    model = ResNet18(n_classes).to(device)
+
+    interactive_logger = InteractiveLogger()
+
+    eval_plugin = EvaluationPlugin(
+        accuracy_metrics(experience=True),
+        loggers=[interactive_logger]
+    )
 
     # CREATE THE STRATEGY INSTANCE (NAIVE)
     cl_strategy = ER_AML(

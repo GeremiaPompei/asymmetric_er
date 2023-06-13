@@ -13,19 +13,16 @@ from avalanche.training.plugins.evaluation import (
 from avalanche.training.storage_policy import ClassBalancedBuffer
 from avalanche.training.templates import SupervisedTemplate
 
-from src.er_aml.er_aml_criterion import AMLCriterion
-from src.model.features_map import FeaturesMapModel
+from src.er_ace.er_ace_criterion import ACECriterion
 
 
-class ER_AML(SupervisedTemplate):
+class ER_ACE(SupervisedTemplate):
 
     def __init__(
             self,
-            model: Union[Module, FeaturesMapModel],
+            model: Union[Module],
             optimizer: Optimizer,
             criterion=CrossEntropyLoss(),
-            temp: float = 0.1,
-            base_temp: float = 0.07,
             n_iters: int = 1,
             mem_size: int = 200,
             batch_size_mem: int = 10,
@@ -59,7 +56,7 @@ class ER_AML(SupervisedTemplate):
         self.storage_policy = ClassBalancedBuffer(
             max_size=self.mem_size, adaptive_size=True
         )
-        self.aml_criterion = AMLCriterion(model=model, temp=temp, base_temp=base_temp, device=device)
+        self.aml_criterion = ACECriterion()
         self.n_iters = n_iters
 
         self.mb_buffer_x = None
@@ -110,11 +107,10 @@ class ER_AML(SupervisedTemplate):
                     self.loss += self.criterion()
                 else:
                     self.loss += self.aml_criterion(
-                        self.mb_x,
+                        self.mb_output,
                         self.mb_y,
                         self.mb_buffer_out,
                         self.mb_buffer_y,
-                        list(self.storage_policy.buffer),
                     )
 
                 self._before_backward(**kwargs)
