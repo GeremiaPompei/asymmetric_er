@@ -52,8 +52,8 @@ class AMLCriterion:
             buffer: list
     ):
         x_buffer, y_buffer, _ = zip(*buffer)
-        xx_buffer = torch.stack(x_buffer)
-        y_buffer = torch.Tensor(y_buffer)
+        xx_buffer = torch.stack(x_buffer).to(self.device)
+        y_buffer = torch.Tensor(y_buffer).to(self.device)
         pos, neg = self.__compute_pos_neg(input_in, target_in, xx_buffer, y_buffer)
         loss_buffer = F.cross_entropy(output_buffer, target_buffer)
         hidden_in = self.model.return_hidden(input_in)
