@@ -6,9 +6,10 @@ from src.model.features_map import FeaturesMapModel
 
 class AMLCriterion:
 
-    def __init__(self, model: FeaturesMapModel, device='cpu'):
+    def __init__(self, model: FeaturesMapModel, temp=0.1, device='cpu'):
         self.device = device
         self.model = model
+        self.temp = temp
         self.pos_h = None
         self.pos_y = None
         self.neg_h = None
@@ -38,8 +39,8 @@ class AMLCriterion:
     def __compute_loss_in(self, hidden_in, pos, neg):
         (pos_h, pos_y), (neg_h, neg_y) = pos, neg
         loss = (
-                torch.exp(F.cosine_similarity(hidden_in, pos_h)) /
-                torch.exp(F.cosine_similarity(hidden_in, neg_h)).sum()
+                torch.exp(F.cosine_similarity(hidden_in, pos_h, eps=self.temp, dim=1)) /
+                torch.exp(F.cosine_similarity(hidden_in, neg_h, eps=self.temp, dim=1)).sum()
         ).log().mean()
         return -loss
 

@@ -17,7 +17,7 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
 def main():
-    num_workers = 1
+    num_workers = 4
     benchmark = SplitCIFAR10(n_experiences=5, seed=0)
 
     # tb_logger = TensorboardLogger()
@@ -47,7 +47,7 @@ def main():
         evaluator=eval_plugin,
         device=device,
         mem_size=200,
-        batch_size_mem=20
+        batch_size_mem=10
     )
 
     # TRAINING LOOP

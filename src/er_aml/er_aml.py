@@ -24,6 +24,7 @@ class ER_AML(SupervisedTemplate):
             model: Module,
             optimizer: Optimizer,
             criterion=CrossEntropyLoss(),
+            temp: float = 0.1,
             mem_size: int = 200,
             batch_size_mem: int = 10,
             train_mb_size: int = 1,
@@ -56,7 +57,7 @@ class ER_AML(SupervisedTemplate):
         self.storage_policy = ClassBalancedBuffer(
             max_size=self.mem_size, adaptive_size=True
         )
-        self.aml_criterion = AMLCriterion(model=model, device=device)
+        self.aml_criterion = AMLCriterion(model=model, temp=temp, device=device)
 
         self.mb_buffer_x = None
         self.mb_buffer_y = None
