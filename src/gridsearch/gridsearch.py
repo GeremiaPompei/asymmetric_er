@@ -73,7 +73,7 @@ def gridsearch(
     for i, hyperparams in enumerate(hyperparams_list):
         print(f'Hyperparams config number {i + 1}/{len(hyperparams_list)}: {hyperparams}')
 
-        if hyperparams in results['validation']:
+        if json.dumps(hyperparams) in [json.dumps(k) for k in results['validation']]:
             continue
 
         AAA, accuracy = run_strategy(

@@ -38,9 +38,9 @@ def main():
         ),
     ]
 
-    results = []
+    results = {}
     for strategy_builder, hyperparams_list in configs:
-        validation_results, test_results = gridsearch(
+        results[strategy_builder.__name__] = gridsearch(
             strategy_builder=strategy_builder,
             benchmark_builder=SplitCIFAR100,
             validation_size=0.05,
@@ -50,8 +50,8 @@ def main():
             device=device,
             verbose=True,
             seed=0,
+            file_to_save='cl'
         )
-        results.append((strategy_builder.__name__, *test_results))
     print(results)
 
 
