@@ -70,10 +70,9 @@ class ER_ACE(SupervisedTemplate):
                 break
 
             self._unpack_minibatch()
+            self._before_training_iteration(**kwargs)
 
             for i in range(self.n_iters):
-                self._before_training_iteration(**kwargs)
-
                 available_buffer = len(self.storage_policy.buffer) >= self.batch_size_mem
                 if available_buffer:
                     batch = next(
@@ -122,6 +121,5 @@ class ER_ACE(SupervisedTemplate):
                 self.optimizer_step()
                 self._after_update(**kwargs)
 
-                self._after_training_iteration(**kwargs)
-
             self.storage_policy.update(self, **kwargs)
+            self._after_training_iteration(**kwargs)

@@ -118,11 +118,6 @@ class ResNet(nn.Module, FeaturesMapModel):
         out = out.view(out.size(0), -1)
         return out
 
-    def forward_and_hidden(self, x):
-        hidden = self.return_hidden(x)
-        out = self.linear(hidden)
-        return out, hidden
-
     def forward(self, x):
         hidden = self.return_hidden(x)
         out = self.linear(hidden)
