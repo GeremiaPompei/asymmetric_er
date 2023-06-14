@@ -33,8 +33,10 @@ class AMLCriterion:
         invalid_idx = ~has_valid_pos | ~has_valid_neg
         is_invalid = torch.zeros_like(y_in).bool()
         is_invalid[invalid_idx] = 1
-        valid_pos = valid_pos[:, ~invalid_idx]
-        valid_neg = valid_neg[:, ~invalid_idx]
+        if invalid_idx.sum() > 0:
+            # avoid operand fail
+            valid_pos[:, invalid_idx] = 1
+            valid_neg[:, invalid_idx] = 1
 
         pos_idx = torch.multinomial(valid_pos.float().T, 1).squeeze(1)
         neg_idx = torch.multinomial(valid_neg.float().T, 1).squeeze(1)
@@ -76,8 +78,8 @@ class AMLCriterion:
         hidden_in = self.model.return_hidden(input_in)
         loss_in = self.__sup_con_loss(
             anchor_features=hidden_in[~is_invalid].repeat(2, 1),
-            features=torch.cat((pos_h, neg_h)),
+            features=torch.cat((pos_h[~is_invalid], neg_h[~is_invalid])),
             anchor_targets=target_in[~is_invalid].repeat(2),
-            targets=torch.cat((pos_y, neg_y)),
+            targets=torch.cat((pos_y[~is_invalid], neg_y[~is_invalid])),
         )
         return loss_in + loss_buffer

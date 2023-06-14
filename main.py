@@ -5,6 +5,7 @@ from src.er_ace import ER_ACE
 from src.er_aml import ER_AML
 from src.gridsearch import gridsearch
 from src.model import ResNet18
+from src.utils import log
 
 
 def main():
@@ -40,6 +41,7 @@ def main():
 
     results = {}
     for strategy_builder, hyperparams_list in configs:
+        log.info(f'STRATEGY "{strategy_builder.__name__}"')
         results[strategy_builder.__name__] = gridsearch(
             strategy_builder=strategy_builder,
             benchmark_builder=SplitCIFAR100,
@@ -50,8 +52,9 @@ def main():
             device=device,
             verbose=True,
             seed=0,
+            file_to_save='results.json'
         )
-    print(results)
+    log.info(results)
 
 
 if __name__ == '__main__':

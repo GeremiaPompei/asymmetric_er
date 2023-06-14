@@ -1,19 +1,12 @@
 import itertools
 import json
 import os.path
-import random
 
-import numpy as np
-import torch
 from avalanche.benchmarks import benchmark_with_validation_stream
 
 from src.gridsearch.strategy_runner import run_strategy
-
-
-def __fix_seed(seed):
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
+from src.utils import fix_seed
+from src.utils import log
 
 
 def __read_file(file_to_save):
@@ -52,7 +45,7 @@ def gridsearch(
             for t in itertools.product(*hyperparams_list.values())
         ]
 
-    __fix_seed(seed)
+    fix_seed(seed)
     benchmark_test = benchmark_builder(
         seed=seed,
         n_experiences=n_experiences
@@ -72,14 +65,14 @@ def gridsearch(
         results = try_to_read[strategy_name]
 
     if verbose:
-        print('Start of validation...')
+        log.info('Start of validation...')
     for i, hyperparams in enumerate(hyperparams_list):
-        print(f'Hyperparams config number {i + 1}/{len(hyperparams_list)}: {hyperparams}')
+        log.info(f'Hyperparams config number {i + 1}/{len(hyperparams_list)}: {hyperparams}')
 
         if json.dumps(hyperparams) in [json.dumps(k) for k in results['validation']]:
             continue
 
-        AAA, accuracy = run_strategy(
+        AAA, accuracy, info = run_strategy(
             strategy_builder=strategy_builder,
             train_stream=benchmark_validation.train_stream,
             eval_stream=benchmark_validation.valid_stream,
@@ -90,19 +83,19 @@ def gridsearch(
             verbose=verbose,
         )
         if verbose:
-            print(f'AAA: {AAA}, accuracy: {accuracy}')
+            log.info(f'AAA: {AAA}, accuracy: {accuracy}')
 
-        results['validation'][json.dumps(hyperparams)] = (AAA, accuracy)
+        results['validation'][json.dumps(hyperparams)] = (AAA, accuracy, info)
         __save_record_in_file(file_to_save, strategy_name, results)
 
     best_hyperparams = json.loads(max({v[0]: k for k, v in results['validation'].items()}.items())[1])
 
     if verbose:
-        print(f'Best hyperparams: {best_hyperparams}')
-        print('End of validation...')
+        log.info(f'Best hyperparams: {best_hyperparams}')
+        log.info('End of validation...')
 
     if results['test'] is None:
-        AAA, accuracy = run_strategy(
+        AAA, accuracy, info = run_strategy(
             strategy_builder=strategy_builder,
             train_stream=benchmark_test.train_stream,
             eval_stream=benchmark_test.test_stream,
@@ -112,12 +105,12 @@ def gridsearch(
             device=device,
             verbose=verbose,
         )
-        results['test'] = (AAA, accuracy, json.dumps(best_hyperparams))
+        results['test'] = (AAA, accuracy, json.dumps(best_hyperparams), info)
         __save_record_in_file(file_to_save, strategy_name, results)
 
     AAA, accuracy, best_hyperparams = results['test']
 
     if verbose:
-        print(f'Test results: Accuracy={accuracy}, AAA={AAA}')
+        log.info(f'Test results: Accuracy={accuracy}, AAA={AAA}')
 
     return results
