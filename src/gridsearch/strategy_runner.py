@@ -28,20 +28,16 @@ def run_strategy(
     )
 
     AAA = 0
-    anytime_accuracy = []
     results = []
     pbar = tqdm(train_stream)
     for experience in pbar:
-        if verbose:
-            pbar.set_description(f'Experience {experience.current_experience + 1}/{len(train_stream)}')
         cl_strategy.train(experience, num_workers=num_workers)
         res = cl_strategy.eval(eval_stream, num_workers=num_workers)
         results.append(res)
         accuracy_res = {int(k[-3:]): v for k, v in res.items() if 'Top1_Acc_Exp' in k}
         accuracies = [accuracy_res[e] for e in range(experience.current_experience + 1)]
-        anytime_accuracy.append(sum(accuracies) / len(accuracies))
-        AAA = sum(anytime_accuracy) / len(anytime_accuracy)
+        AAA = sum(accuracies) / len(accuracies)
         if verbose:
-            pbar.write(f'Current AAA: {AAA}')
+            pbar.set_description(f'AAA={AAA}')
 
-    return AAA, anytime_accuracy[-1], results
+    return AAA, accuracies[-1], results
