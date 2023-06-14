@@ -1,4 +1,5 @@
 import itertools
+import json
 import random
 
 import numpy as np
@@ -25,6 +26,7 @@ def gridsearch(
         device='cpu',
         verbose=True,
         seed=0,
+        file_to_save=None,
 ) -> tuple[
     dict[float, tuple[any, float]],
     tuple[float, float, dict[str, any]]
@@ -47,10 +49,19 @@ def gridsearch(
     )
 
     validation_results = {}
+    
+    if file_to_save is not None:
+        with open(file_to_save) as file:
+            validation_results = json.load(file)
+        
     if verbose:
         print('Start of validation...')
     for i, hyperparams in enumerate(hyperparams_list):
         print(f'Hyperparams config number {i + 1}/{len(hyperparams_list)}: {hyperparams}')
+
+        if hyperparams in validation_results:
+            continue
+
         AAA, accuracy = run_strategy(
             strategy_builder=strategy_builder,
             train_stream=benchmark_validation.train_stream,
@@ -61,12 +72,17 @@ def gridsearch(
             device=device,
             verbose=verbose,
         )
-        validation_results[AAA] = (hyperparams, accuracy)
+        if verbose:
+            print(f'AAA: {AAA}, accuracy: {accuracy}')
 
-        break  # only dev
+        validation_results[hyperparams] = (AAA, accuracy)
 
-    validation_results = dict(sorted(validation_results.items(), reverse=True))
-    best_hyperparams, _ = list(validation_results.values())[0]
+        if file_to_save is not None:
+            with open(file_to_save, 'w') as file:
+                json.dump(validation_results, file)
+
+    best_hyperparams = max({v[0]: k for k, v in validation_results.items()}.items())[1]
+    
     if verbose:
         print(f'Best hyperparams: {best_hyperparams}')
         print('End of validation...')
