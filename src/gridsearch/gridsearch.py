@@ -16,17 +16,17 @@ def __fix_seed(seed):
     torch.manual_seed(seed)
 
 
-def __read_record_in_file(file_to_save, strategy_key):
+def __read_file(file_to_save):
     if file_to_save is not None:
         if os.path.exists(file_to_save):
             with open(file_to_save) as file:
-                results = json.load(file)
-                if strategy_key in results:
-                    return results[strategy_key]
+                return json.load(file)
 
 
 def __save_record_in_file(file_to_save, strategy_key, strategy_value):
-    results = __read_record_in_file(file_to_save)
+    results = __read_file(file_to_save)
+    if results is None:
+        results = {}
     results[strategy_key] = strategy_value
     with open(file_to_save, 'w') as file:
         json.dump(results, file)
@@ -62,11 +62,13 @@ def gridsearch(
         validation_size=validation_size
     )
 
-    try_to_read = __read_record_in_file(file_to_save, strategy_builder.__class__)
     results = dict(
         validation={},
         test=None,
-    ) if try_to_read is None else try_to_read
+    )
+    try_to_read = __read_file(file_to_save)
+    if try_to_read is not None and strategy_builder.__class__ in results:
+        results = try_to_read[strategy_builder.__class__]
 
     if verbose:
         print('Start of validation...')
