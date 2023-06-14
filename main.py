@@ -50,7 +50,6 @@ def main():
             device=device,
             verbose=True,
             seed=0,
-            file_to_save='cl'
         )
     print(results)
 
