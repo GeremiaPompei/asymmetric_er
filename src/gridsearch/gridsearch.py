@@ -1,5 +1,6 @@
 import itertools
 import json
+import os.path
 import random
 
 import numpy as np
@@ -51,8 +52,9 @@ def gridsearch(
     validation_results = {}
     
     if file_to_save is not None:
-        with open(file_to_save) as file:
-            validation_results = json.load(file)
+        if os.path.exists(file_to_save):
+            with open(file_to_save) as file:
+                validation_results = json.load(file)
         
     if verbose:
         print('Start of validation...')
