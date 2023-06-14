@@ -3,8 +3,8 @@ import torch
 
 from src.er_ace import ER_ACE
 from src.er_aml import ER_AML
-from src.gridsearch.gridsearch import gridsearch
-from src.model.resnet18 import ResNet18
+from src.gridsearch import gridsearch
+from src.model import ResNet18
 
 
 def main():
