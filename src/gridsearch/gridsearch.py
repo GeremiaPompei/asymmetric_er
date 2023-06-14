@@ -45,6 +45,7 @@ def gridsearch(
         seed=0,
         file_to_save=None,
 ) -> dict:
+    strategy_name = strategy_builder.__name__
     if isinstance(hyperparams_list, dict):
         hyperparams_list = [
             dict(zip(hyperparams_list.keys(), t))
@@ -67,8 +68,8 @@ def gridsearch(
         test=None,
     )
     try_to_read = __read_file(file_to_save)
-    if try_to_read is not None and strategy_builder.__class__ in results:
-        results = try_to_read[strategy_builder.__class__]
+    if try_to_read is not None and strategy_name in results:
+        results = try_to_read[strategy_name]
 
     if verbose:
         print('Start of validation...')
@@ -91,10 +92,10 @@ def gridsearch(
         if verbose:
             print(f'AAA: {AAA}, accuracy: {accuracy}')
 
-        results['validation'][hyperparams] = (AAA, accuracy)
-        __save_record_in_file(file_to_save, strategy_builder.__class__, results)
+        results['validation'][json.dumps(hyperparams)] = (AAA, accuracy)
+        __save_record_in_file(file_to_save, strategy_name, results)
 
-    best_hyperparams = max({v[0]: k for k, v in results['validation'].items()}.items())[1]
+    best_hyperparams = json.loads(max({v[0]: k for k, v in results['validation'].items()}.items())[1])
 
     if verbose:
         print(f'Best hyperparams: {best_hyperparams}')
@@ -111,8 +112,8 @@ def gridsearch(
             device=device,
             verbose=verbose,
         )
-        results['test'] = (AAA, accuracy, best_hyperparams)
-        __save_record_in_file(file_to_save, strategy_builder.__class__, results)
+        results['test'] = (AAA, accuracy, json.dumps(best_hyperparams))
+        __save_record_in_file(file_to_save, strategy_name, results)
 
     AAA, accuracy, best_hyperparams = results['test']
 
