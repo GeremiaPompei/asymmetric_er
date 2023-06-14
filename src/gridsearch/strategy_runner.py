@@ -45,6 +45,6 @@ def run_strategy(
         anytime_accuracy.append(sum(accuracies) / len(accuracies))
         AAA = sum(anytime_accuracy) / len(anytime_accuracy)
         if verbose:
-            print(f'AAA: {AAA}')
+            print(f'Current AAA: {AAA}')
 
     return AAA, anytime_accuracy[-1]
