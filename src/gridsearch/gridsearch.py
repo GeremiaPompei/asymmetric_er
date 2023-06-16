@@ -61,7 +61,7 @@ def gridsearch(
         test=None,
     )
     try_to_read = __read_file(file_to_save)
-    if try_to_read is not None and strategy_name in results:
+    if try_to_read is not None and strategy_name in try_to_read:
         results = try_to_read[strategy_name]
 
     if verbose:
@@ -69,7 +69,9 @@ def gridsearch(
     for i, hyperparams in enumerate(hyperparams_list):
         log.info(f'Hyperparams config number {i + 1}/{len(hyperparams_list)}: {hyperparams}')
 
-        if json.dumps(hyperparams) in [json.dumps(k) for k in results['validation']]:
+        stored_hyperparams_hash = [hash(k) for k in results['validation']]
+        current_hash = hash(json.dumps(hyperparams))
+        if current_hash in stored_hyperparams_hash:
             continue
 
         AAA, accuracy, info = run_strategy(

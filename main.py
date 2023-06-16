@@ -48,7 +48,7 @@ def main():
             validation_size=0.05,
             model_builder=ResNet18,
             hyperparams_list=hyperparams_list,
-            num_workers=2,
+            num_workers=1,
             device=device,
             verbose=True,
             seed=0,
