@@ -105,7 +105,7 @@ class ER_AML(SupervisedTemplate):
                 self._after_forward(**kwargs)
 
                 # Loss & Backward
-                if not available_buffer:
+                if not available_buffer or self.experience.current_experience == 0:
                     self.loss += self.criterion()
                 else:
                     self.loss += self.aml_criterion(

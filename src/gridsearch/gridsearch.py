@@ -110,7 +110,7 @@ def gridsearch(
         results['test'] = (AAA, accuracy, json.dumps(best_hyperparams), info)
         __save_record_in_file(file_to_save, strategy_name, results)
 
-    AAA, accuracy, best_hyperparams = results['test']
+    AAA, accuracy, best_hyperparams, _ = results['test']
 
     if verbose:
         log.info(f'Test results: Accuracy={accuracy}, AAA={AAA}')

@@ -1,5 +1,4 @@
 from avalanche.evaluation.metrics import accuracy_metrics
-from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import EvaluationPlugin
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
@@ -15,6 +14,7 @@ def run_strategy(
         num_workers=2,
         device='cpu',
         verbose=True,
+        loggers=[]
 ) -> tuple[float, float, list]:
     sgd_params = {k.replace('sgd_', ''): v for k, v in hyperparams.items() if k.startswith('sgd_')}
     strategy_params = {k.replace('strategy_', ''): v for k, v in hyperparams.items() if k.startswith('strategy_')}
@@ -22,22 +22,29 @@ def run_strategy(
         model,
         SGD(model.parameters(), **sgd_params),
         CrossEntropyLoss(),
-        evaluator=EvaluationPlugin(accuracy_metrics(experience=True)),
+        evaluator=EvaluationPlugin(
+            accuracy_metrics(experience=True),
+            loggers=loggers,
+        ),
         device=device,
         **strategy_params,
     )
 
-    AAA = 0
+    anytime_accuracies = []
+    AAA, anytime_accuracy = None, None
     results = []
     pbar = tqdm(train_stream)
     for experience in pbar:
-        cl_strategy.train(experience, num_workers=num_workers)
-        res = cl_strategy.eval(eval_stream, num_workers=num_workers)
+        model.train()
+        cl_strategy.train(experience, num_workers=num_workers, drop_last=True)
+        model.eval()
+        res = cl_strategy.eval(eval_stream[:experience.current_experience + 1], num_workers=num_workers)
         results.append(res)
-        accuracy_res = {int(k[-3:]): v for k, v in res.items() if 'Top1_Acc_Exp' in k}
-        accuracies = [accuracy_res[e] for e in range(experience.current_experience + 1)]
-        AAA = sum(accuracies) / len(accuracies)
+        accuracies = [v for k, v in res.items() if 'Top1_Acc_Exp' in k]
+        anytime_accuracy = sum(accuracies) / len(accuracies)
+        anytime_accuracies.append(anytime_accuracy)
+        AAA = sum(anytime_accuracies) / len(anytime_accuracies)
         if verbose:
-            pbar.set_description(f'AAA={AAA}')
+            pbar.set_description(f'AAA={AAA}, Accuracy={anytime_accuracy}')
 
-    return AAA, accuracies[-1], results
+    return AAA, anytime_accuracy, results
