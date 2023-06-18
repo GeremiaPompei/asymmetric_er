@@ -19,10 +19,10 @@ def main():
                 strategy_eval_mb_size=[10],
                 strategy_train_epochs=[1],
                 strategy_mem_size=[100],
-                strategy_batch_size_mem=[35],
+                strategy_batch_size_mem=[10],
                 strategy_temp=[0.1, 0.2],
                 sgd_lr=[0.1, 0.01, 0.001],
-                sgd_momentum=[0.9]
+                sgd_momentum=[0]
             )
         ),
         (
@@ -32,9 +32,9 @@ def main():
                 strategy_eval_mb_size=[10],
                 strategy_train_epochs=[1],
                 strategy_mem_size=[100],
-                strategy_batch_size_mem=[35],
+                strategy_batch_size_mem=[10],
                 sgd_lr=[0.1, 0.01, 0.001],
-                sgd_momentum=[0.9]
+                sgd_momentum=[0]
             ),
         ),
     ]
