@@ -1,6 +1,6 @@
-from avalanche.benchmarks.classic import SplitCIFAR100
 import torch
 
+from src.benchmark import split_cifar100
 from src.er_ace import ER_ACE
 from src.er_aml import ER_AML
 from src.gridsearch import gridsearch
@@ -44,8 +44,8 @@ def main():
         log.info(f'STRATEGY "{strategy_builder.__name__}"')
         results[strategy_builder.__name__] = gridsearch(
             strategy_builder=strategy_builder,
-            benchmark_builder=SplitCIFAR100,
-            validation_size=0.05,
+            benchmark_builder=split_cifar100,
+            validation_size=0.1,
             model_builder=ResNet18,
             hyperparams_list=hyperparams_list,
             num_workers=1,

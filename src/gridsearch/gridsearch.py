@@ -47,26 +47,7 @@ def gridsearch(
             for t in itertools.product(*hyperparams_list.values())
         ]
 
-    fix_seed(seed)
-    fixed_class_order = np.arange(100)
-    unique_transform = transforms.Compose(
-        [
-            ToTensor(),
-            transforms.Normalize(
-                (0.5071, 0.4866, 0.4409), (0.2009, 0.1984, 0.2023)
-            ),
-        ]
-    )
-    benchmark_test = benchmark_builder(
-        seed=seed,
-        n_experiences=n_experiences,
-        train_transform=unique_transform,
-        eval_transform=unique_transform,
-        fixed_class_order=fixed_class_order,
-        return_task_id=False,
-        shuffle=True,
-        class_ids_from_zero_in_each_exp=False,
-    )
+    benchmark_test = benchmark_builder(n_experiences=n_experiences, seed=seed)
     n_classes = benchmark_test.n_classes
     benchmark_validation = benchmark_with_validation_stream(
         benchmark_test,
