@@ -10,7 +10,7 @@ ERACE_AAA, ERACE_accuracy, ERACE_results = run_strategy(
     strategy_builder=ER_AML,
     train_stream=benchmark.train_stream,
     eval_stream=benchmark.test_stream,
-    model=ResNet18(benchmark.n_classes),
+    model_builder=ResNet18,
     hyperparams=dict(
         strategy_train_mb_size=10,
         strategy_eval_mb_size=10,
@@ -20,6 +20,7 @@ ERACE_AAA, ERACE_accuracy, ERACE_results = run_strategy(
         sgd_lr=0.1,
         sgd_momentum=0
     ),
+    n_classes=benchmark.n_classes,
     num_workers=0,
     verbose=True
 )

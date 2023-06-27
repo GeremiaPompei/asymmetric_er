@@ -5,6 +5,23 @@ from torch.nn.functional import relu, avg_pool2d
 from src.model.features_map import FeaturesMapModel
 
 
+def _scale_by_norm(x):
+    x_norm = torch.norm(x, p=2, dim=1).unsqueeze(1).expand_as(x)
+    return x / (x_norm + 0.00001)
+
+
+class DistLinear(nn.Module):
+    def __init__(self, size_in, size_out):
+        super(DistLinear, self).__init__()
+        self.linear = torch.randn((size_in, size_out))
+        self.scale_factor = 10
+
+    def forward(self, x):
+        cos_dist = _scale_by_norm(x) @ _scale_by_norm(self.linear)
+        scores = self.scale_factor * cos_dist
+        return scores
+
+
 def conv3x3(in_planes, out_planes, stride=1):
     return nn.Conv2d(
         in_planes,
@@ -48,7 +65,7 @@ class BasicBlock(nn.Module):
 
 
 class ResNet(nn.Module, FeaturesMapModel):
-    def __init__(self, block, num_blocks, num_classes, nf):
+    def __init__(self, block, num_blocks, num_classes, nf, dist_linear=False):
         super(ResNet, self).__init__()
         self.in_planes = nf
 
@@ -58,7 +75,7 @@ class ResNet(nn.Module, FeaturesMapModel):
         self.layer2 = self._make_layer(block, nf * 2, num_blocks[1], stride=2)
         self.layer3 = self._make_layer(block, nf * 4, num_blocks[2], stride=2)
         self.layer4 = self._make_layer(block, nf * 8, num_blocks[3], stride=2)
-        self.linear = nn.Linear(nf * 8 * block.expansion, num_classes)
+        self.linear = (DistLinear if dist_linear else nn.Linear)(nf * 8 * block.expansion, num_classes)
 
     def _make_layer(self, block, planes, num_blocks, stride):
         strides = [stride] + [1] * (num_blocks - 1)
@@ -85,5 +102,5 @@ class ResNet(nn.Module, FeaturesMapModel):
         return out
 
 
-def ResNet18(nclasses, nf=20):
-    return ResNet(BasicBlock, [2, 2, 2, 2], nclasses, nf)
+def ResNet18(nclasses, dist_linear=False, nf=20):
+    return ResNet(BasicBlock, [2, 2, 2, 2], nclasses, nf, dist_linear=dist_linear)

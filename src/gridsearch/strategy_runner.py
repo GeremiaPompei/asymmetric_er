@@ -5,19 +5,27 @@ from torch.optim import SGD
 from tqdm import tqdm
 
 
+def __extract_hyperparams(general_hyperparams, key):
+    prefix = f'{key}_'
+    return {k.replace(prefix, ''): v for k, v in general_hyperparams.items() if k.startswith(prefix)}
+
+
 def run_strategy(
         strategy_builder,
         train_stream,
         eval_stream,
-        model,
+        model_builder,
         hyperparams,
+        n_classes,
         num_workers=2,
         device='cpu',
         verbose=True,
         loggers=[]
 ) -> tuple[float, float, list]:
-    sgd_params = {k.replace('sgd_', ''): v for k, v in hyperparams.items() if k.startswith('sgd_')}
-    strategy_params = {k.replace('strategy_', ''): v for k, v in hyperparams.items() if k.startswith('strategy_')}
+    sgd_params = __extract_hyperparams(hyperparams, 'sgd')
+    strategy_params = __extract_hyperparams(hyperparams, 'strategy')
+    model_params = __extract_hyperparams(hyperparams, 'model')
+    model = model_builder(n_classes, **model_params).to(device)
     cl_strategy = strategy_builder(
         model,
         SGD(model.parameters(), **sgd_params),
