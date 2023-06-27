@@ -1,5 +1,6 @@
 import torch
 import torch.nn.functional as F
+from avalanche.training import ReservoirSamplingBuffer, ClassBalancedBuffer
 
 from src.model.features_map import FeaturesMapModel
 
@@ -65,11 +66,9 @@ class AMLCriterion:
             target_in,
             output_buffer,
             target_buffer,
-            buffer: list
+            reservoir_sampling_data
     ):
-        x_buffer, y_buffer, _ = zip(*buffer)
-        x_buffer = torch.stack(x_buffer).to(self.device)
-        y_buffer = torch.Tensor(y_buffer).to(self.device)
+        x_buffer, y_buffer, _ = reservoir_sampling_data
 
         (pos_h, pos_y), (neg_h, neg_y), is_invalid = self.__compute_pos_neg(input_in, target_in, x_buffer, y_buffer)
 

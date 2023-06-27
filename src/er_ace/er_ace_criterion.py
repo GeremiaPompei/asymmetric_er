@@ -15,9 +15,11 @@ class ACECriterion:
             target_buffer
     ):
         loss_buffer = F.cross_entropy(output_buffer, target_buffer)
+        unique_in = target_in.unique().tolist()
         mask = torch.ones_like(output_in)
-        self.seen_so_far = {*list(self.seen_so_far), *target_in.unique().tolist()}
+        self.seen_so_far = {*list(self.seen_so_far), *unique_in}
         mask[:, list(self.seen_so_far)] = 0
-        mask[:, target_in.unique().tolist()] = 1
-        loss_in = F.cross_entropy(output_in * mask, target_in)
+        mask[:, unique_in] = 1
+        output_in = output_in.masked_fill(mask == 0, -1e9)
+        loss_in = F.cross_entropy(output_in, target_in)
         return loss_in + loss_buffer

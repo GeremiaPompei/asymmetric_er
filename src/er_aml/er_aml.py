@@ -1,6 +1,7 @@
 from typing import Callable, List, Optional, Union
 
 import torch
+from avalanche.benchmarks.utils import AvalancheDataset, SupervisedClassificationDataset
 from torch.nn import CrossEntropyLoss, Module
 from torch.optim import Optimizer
 
@@ -15,6 +16,7 @@ from avalanche.training.templates import SupervisedTemplate
 
 from src.er_aml.er_aml_criterion import AMLCriterion
 from src.model.features_map import FeaturesMapModel
+from src.utils.balanced_reservoir_sampling import BalancedReservoirSampling
 
 
 class ER_AML(SupervisedTemplate):
@@ -56,9 +58,7 @@ class ER_AML(SupervisedTemplate):
         )
         self.mem_size = mem_size
         self.batch_size_mem = batch_size_mem
-        self.storage_policy = ClassBalancedBuffer(
-            max_size=self.mem_size, adaptive_size=True
-        )
+        self.storage_policy = BalancedReservoirSampling(mem_size=self.mem_size)
         self.aml_criterion = AMLCriterion(model=model, temp=temp, base_temp=base_temp, device=device)
         self.n_iters = n_iters
 
@@ -76,18 +76,9 @@ class ER_AML(SupervisedTemplate):
             self._before_training_iteration(**kwargs)
 
             for i in range(self.n_iters):
-                available_buffer = len(self.storage_policy.buffer) >= self.batch_size_mem
+                available_buffer = len(self.storage_policy) >= self.batch_size_mem
                 if available_buffer:
-                    batch = next(
-                        iter(
-                            torch.utils.data.DataLoader(
-                                self.storage_policy.buffer,
-                                batch_size=self.batch_size_mem,
-                                shuffle=True,
-                                drop_last=True,
-                            )
-                        )
-                    )
+                    batch = self.storage_policy.sample(self.batch_size_mem)
                     self.mb_buffer_x, self.mb_buffer_y, self.mb_buffer_tid = (v.to(self.device) for v in batch)
 
                 self.optimizer.zero_grad()
@@ -113,7 +104,7 @@ class ER_AML(SupervisedTemplate):
                         self.mb_y,
                         self.mb_buffer_out,
                         self.mb_buffer_y,
-                        list(self.storage_policy.buffer),
+                        self.storage_policy.buffer,
                     )
 
                 self._before_backward(**kwargs)
@@ -125,5 +116,5 @@ class ER_AML(SupervisedTemplate):
                 self.optimizer_step()
                 self._after_update(**kwargs)
 
-            self.storage_policy.update(self, **kwargs)
+            self.storage_policy.update(*self.mbatch)
             self._after_training_iteration(**kwargs)

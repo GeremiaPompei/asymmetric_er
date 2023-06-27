@@ -14,6 +14,7 @@ from avalanche.training.storage_policy import ClassBalancedBuffer
 from avalanche.training.templates import SupervisedTemplate
 
 from src.er_ace.er_ace_criterion import ACECriterion
+from src.utils.balanced_reservoir_sampling import BalancedReservoirSampling
 
 
 class ER_ACE(SupervisedTemplate):
@@ -53,10 +54,8 @@ class ER_ACE(SupervisedTemplate):
         )
         self.mem_size = mem_size
         self.batch_size_mem = batch_size_mem
-        self.storage_policy = ClassBalancedBuffer(
-            max_size=self.mem_size, adaptive_size=True
-        )
-        self.aml_criterion = ACECriterion()
+        self.storage_policy = BalancedReservoirSampling(mem_size=self.mem_size)
+        self.ace_criterion = ACECriterion()
         self.n_iters = n_iters
 
         self.mb_buffer_x = None
@@ -73,18 +72,9 @@ class ER_ACE(SupervisedTemplate):
             self._before_training_iteration(**kwargs)
 
             for i in range(self.n_iters):
-                available_buffer = len(self.storage_policy.buffer) >= self.batch_size_mem
+                available_buffer = len(self.storage_policy) >= self.batch_size_mem
                 if available_buffer:
-                    batch = next(
-                        iter(
-                            torch.utils.data.DataLoader(
-                                self.storage_policy.buffer,
-                                batch_size=self.batch_size_mem,
-                                shuffle=True,
-                                drop_last=True,
-                            )
-                        )
-                    )
+                    batch = self.storage_policy.sample(self.batch_size_mem)
                     self.mb_buffer_x, self.mb_buffer_y, self.mb_buffer_tid = (v.to(self.device) for v in batch)
 
                 self.optimizer.zero_grad()
@@ -105,7 +95,7 @@ class ER_ACE(SupervisedTemplate):
                 if not available_buffer:
                     self.loss += self.criterion()
                 else:
-                    self.loss += self.aml_criterion(
+                    self.loss += self.ace_criterion(
                         self.mb_output,
                         self.mb_y,
                         self.mb_buffer_out,
@@ -121,5 +111,5 @@ class ER_ACE(SupervisedTemplate):
                 self.optimizer_step()
                 self._after_update(**kwargs)
 
-            self.storage_policy.update(self, **kwargs)
+            self.storage_policy.update(*self.mbatch)
             self._after_training_iteration(**kwargs)
