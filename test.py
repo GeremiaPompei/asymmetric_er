@@ -6,7 +6,7 @@ from src.er_aml import ER_AML
 from avalanche.training.supervised.er_ace import ER_ACE as ER_ACE_AVALANCHE
 
 benchmark = split_cifar100(n_experiences=20, seed=0)
-ERACE_AAA, ERACE_accuracy, ERACE_results = run_strategy(
+run_strategy(
     strategy_builder=ER_AML,
     train_stream=benchmark.train_stream,
     eval_stream=benchmark.test_stream,
@@ -17,6 +17,7 @@ ERACE_AAA, ERACE_accuracy, ERACE_results = run_strategy(
         strategy_train_epochs=1,
         strategy_mem_size=100 * 100,  # mem_size * num_classes
         strategy_batch_size_mem=10,
+        model_dist_linear=True,
         sgd_lr=0.1,
         sgd_momentum=0
     ),
