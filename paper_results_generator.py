@@ -1,5 +1,6 @@
 import torch
-from avalanche.training import Naive, DER, GDumb
+from avalanche.training import Naive, GDumb
+from avalanche.training import ER_ACE as ER_ACE_AVALANCHE
 
 from src.benchmark import split_cifar100
 from src.er_ace import ER_ACE
@@ -14,6 +15,7 @@ def main():
 
     configs = [
         (
+            'Naive',
             Naive,
             dict(
                 strategy_train_mb_size=[10],
@@ -24,6 +26,7 @@ def main():
             )
         ),
         (
+            'GDumb',
             GDumb,
             dict(
                 strategy_train_mb_size=[10],
@@ -35,6 +38,20 @@ def main():
             )
         ),
         (
+            'ER_ACE_AVALANCHE',
+            ER_ACE_AVALANCHE,
+            dict(
+                strategy_train_mb_size=[10],
+                strategy_eval_mb_size=[10],
+                strategy_train_epochs=[1],
+                strategy_mem_size=[100 * 100],
+                strategy_batch_size_mem=[10],
+                sgd_lr=[0.1, 0.01, 0.001],
+                sgd_momentum=[0]
+            ),
+        ),
+        (
+            'ER_AML',
             ER_AML,
             dict(
                 strategy_train_mb_size=[10],
@@ -48,6 +65,7 @@ def main():
             )
         ),
         (
+            'ER_ACE',
             ER_ACE,
             dict(
                 strategy_train_mb_size=[10],
@@ -61,10 +79,9 @@ def main():
         ),
     ]
 
-    results = {}
-    for strategy_builder, hyperparams_list in configs:
-        log.info(f'STRATEGY "{strategy_builder.__name__}"')
-        results[strategy_builder.__name__] = gridsearch(
+    for strategy_name, strategy_builder, hyperparams_list in configs:
+        log.info(f'STRATEGY "{strategy_name}"')
+        gridsearch(
             strategy_builder=strategy_builder,
             benchmark_builder=split_cifar100,
             validation_size=0.1,
@@ -74,9 +91,9 @@ def main():
             device=device,
             verbose=True,
             seed=0,
-            file_to_save='results.json'
+            file_to_save='paper_results.json',
+            name=strategy_name,
         )
-    log.info(results)
 
 
 if __name__ == '__main__':

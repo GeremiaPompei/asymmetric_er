@@ -20,7 +20,8 @@ def run_strategy(
         num_workers=2,
         device='cpu',
         verbose=True,
-        loggers=[]
+        metrics=[],
+        loggers=[],
 ) -> tuple[float, float, list]:
     sgd_params = __extract_hyperparams(hyperparams, 'sgd')
     strategy_params = __extract_hyperparams(hyperparams, 'strategy')
@@ -32,6 +33,7 @@ def run_strategy(
         CrossEntropyLoss(),
         evaluator=EvaluationPlugin(
             accuracy_metrics(experience=True),
+            *metrics,
             loggers=loggers,
         ),
         device=device,

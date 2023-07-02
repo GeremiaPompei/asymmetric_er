@@ -2,12 +2,9 @@ import itertools
 import json
 import os.path
 
-import numpy as np
 from avalanche.benchmarks import benchmark_with_validation_stream
-from torchvision.transforms import transforms, ToTensor
 
 from src.gridsearch.strategy_runner import run_strategy
-from src.utils import fix_seed
 from src.utils import log
 
 
@@ -39,8 +36,10 @@ def gridsearch(
         verbose=True,
         seed=0,
         file_to_save=None,
+        name=None,
+        metrics=[],
 ) -> dict:
-    strategy_name = strategy_builder.__name__
+    strategy_name = strategy_builder.__name__ if name is None else name
     if isinstance(hyperparams_list, dict):
         hyperparams_list = [
             dict(zip(hyperparams_list.keys(), t))
@@ -62,38 +61,45 @@ def gridsearch(
     if try_to_read is not None and strategy_name in try_to_read:
         results = try_to_read[strategy_name]
 
-    if verbose:
-        log.info('Start of validation...')
-    for i, hyperparams in enumerate(hyperparams_list):
-        log.info(f'Hyperparams config number {i + 1}/{len(hyperparams_list)}: {hyperparams}')
+    if len(hyperparams_list) > 1:
 
-        stored_hyperparams_hash = [hash(k) for k in results['validation']]
-        current_hash = hash(json.dumps(hyperparams))
-        if current_hash in stored_hyperparams_hash:
-            continue
-
-        AAA, accuracy, info = run_strategy(
-            strategy_builder=strategy_builder,
-            train_stream=benchmark_validation.train_stream,
-            eval_stream=benchmark_validation.valid_stream,
-            model_builder=model_builder,
-            hyperparams=hyperparams,
-            n_classes=n_classes,
-            num_workers=num_workers,
-            device=device,
-            verbose=verbose,
-        )
         if verbose:
-            log.info(f'AAA: {AAA}, accuracy: {accuracy}')
+            log.info('Start of validation...')
+        for i, hyperparams in enumerate(hyperparams_list):
+            log.info(f'Hyperparams config number {i + 1}/{len(hyperparams_list)}: {hyperparams}')
 
-        results['validation'][json.dumps(hyperparams)] = (AAA, accuracy, info)
-        __save_record_in_file(file_to_save, strategy_name, results)
+            stored_hyperparams_hash = [hash(k) for k in results['validation']]
+            current_hash = hash(json.dumps(hyperparams))
+            if current_hash in stored_hyperparams_hash:
+                continue
 
-    best_hyperparams = json.loads(max({v[0]: k for k, v in results['validation'].items()}.items())[1])
+            AAA, accuracy, info = run_strategy(
+                strategy_builder=strategy_builder,
+                train_stream=benchmark_validation.train_stream,
+                eval_stream=benchmark_validation.valid_stream,
+                model_builder=model_builder,
+                hyperparams=hyperparams,
+                n_classes=n_classes,
+                num_workers=num_workers,
+                device=device,
+                verbose=verbose,
+                metrics=metrics,
+            )
+            if verbose:
+                log.info(f'AAA: {AAA}, accuracy: {accuracy}')
 
-    if verbose:
-        log.info(f'Best hyperparams: {best_hyperparams}')
-        log.info('End of validation...')
+            results['validation'][json.dumps(hyperparams)] = (AAA, accuracy, info)
+            __save_record_in_file(file_to_save, strategy_name, results)
+
+        best_hyperparams = json.loads(max({v[0]: k for k, v in results['validation'].items()}.items())[1])
+
+        if verbose:
+            log.info(f'Best hyperparams: {best_hyperparams}')
+            log.info('End of validation...')
+
+    else:
+
+        best_hyperparams = hyperparams_list[0]
 
     if results['test'] is None:
         AAA, accuracy, info = run_strategy(
@@ -106,6 +112,7 @@ def gridsearch(
             num_workers=num_workers,
             device=device,
             verbose=verbose,
+            metrics=metrics,
         )
         results['test'] = (AAA, accuracy, json.dumps(best_hyperparams), info)
         __save_record_in_file(file_to_save, strategy_name, results)
