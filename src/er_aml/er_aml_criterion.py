@@ -42,17 +42,15 @@ class AMLCriterion:
         pos_idx = torch.multinomial(valid_pos.float().T, 1).squeeze(1)
         neg_idx = torch.multinomial(valid_neg.float().T, 1).squeeze(1)
 
-        pos_h = self.model.return_hidden(x_all[pos_idx])
+        pos_x = x_all[pos_idx]
         pos_y = y_all[pos_idx]
-        neg_h = self.model.return_hidden(x_all[neg_idx])
+        neg_x = x_all[neg_idx]
         neg_y = y_all[neg_idx]
 
-        return (pos_h, pos_y), (neg_h, neg_y), is_invalid
+        return (pos_x, pos_y), (neg_x, neg_y), is_invalid
 
     def __sup_con_loss(self, anchor_features, features, anchor_targets, targets):
         pos_mask = (anchor_targets.reshape(-1, 1) == targets.reshape(1, -1)).float().to(self.device)
-        anchor_features = normalize(anchor_features)
-        features = normalize(features)
         similarity = anchor_features @ features.T / self.temp
         similarity -= similarity.max(dim=1)[0].detach()
         log_prob = similarity - torch.log(torch.exp(similarity).sum(1))
@@ -69,15 +67,16 @@ class AMLCriterion:
             reservoir_sampling_data
     ):
         x_buffer, y_buffer, _ = reservoir_sampling_data
-
-        (pos_h, pos_y), (neg_h, neg_y), is_invalid = self.__compute_pos_neg(input_in, target_in, x_buffer, y_buffer)
-
+        (pos_x, pos_y), (neg_x, neg_y), is_invalid = self.__compute_pos_neg(input_in, target_in, x_buffer, y_buffer)
         loss_buffer = F.cross_entropy(output_buffer, target_buffer)
+        hidden_in = normalize(self.model.return_hidden(input_in)[~is_invalid])
 
-        hidden_in = self.model.return_hidden(input_in)
+        hidden_pos_neg = normalize(self.model.return_hidden(torch.cat((pos_x, neg_x))))
+        pos_h, neg_h = hidden_pos_neg.reshape(2, pos_x.shape[0], -1)[:, ~is_invalid]
+
         loss_in = self.__sup_con_loss(
-            anchor_features=hidden_in[~is_invalid].repeat(2, 1),
-            features=torch.cat((pos_h[~is_invalid], neg_h[~is_invalid])),
+            anchor_features=hidden_in.repeat(2, 1),
+            features=torch.cat((pos_h, neg_h)),
             anchor_targets=target_in[~is_invalid].repeat(2),
             targets=torch.cat((pos_y[~is_invalid], neg_y[~is_invalid])),
         )

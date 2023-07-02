@@ -1,4 +1,5 @@
 import torch
+from avalanche.training import Naive, DER, GDumb
 
 from src.benchmark import split_cifar100
 from src.er_ace import ER_ACE
@@ -12,6 +13,27 @@ def main():
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     configs = [
+        (
+            Naive,
+            dict(
+                strategy_train_mb_size=[10],
+                strategy_eval_mb_size=[10],
+                strategy_train_epochs=[1],
+                sgd_lr=[0.1, 0.01, 0.001],
+                sgd_momentum=[0]
+            )
+        ),
+        (
+            GDumb,
+            dict(
+                strategy_train_mb_size=[10],
+                strategy_eval_mb_size=[10],
+                strategy_train_epochs=[1],
+                strategy_mem_size=[100 * 100],
+                sgd_lr=[0.1, 0.01, 0.001],
+                sgd_momentum=[0]
+            )
+        ),
         (
             ER_AML,
             dict(

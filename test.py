@@ -17,7 +17,8 @@ run_strategy(
         strategy_train_epochs=1,
         strategy_mem_size=100 * 100,  # mem_size * num_classes
         strategy_batch_size_mem=10,
-        model_dist_linear=True,
+        strategy_n_iters=1,
+        model_dist_linear=False,
         sgd_lr=0.1,
         sgd_momentum=0
     ),
