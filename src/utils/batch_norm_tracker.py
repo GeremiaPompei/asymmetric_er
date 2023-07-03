@@ -1,29 +1,36 @@
+import torch
 from avalanche.evaluation import PluginMetric
 
+from src.model.resnet18 import ResNet
 
-class BatchNormTracker(PluginMetric[dict]):
+
+class BatchNormTracker(PluginMetric[list]):
 
     def __init__(self):
         super().__init__()
-        self.running_mean, self.running_var, self.weight, self.bias = [], [], [], []
+        self.layers = []
 
     def reset(self) -> None:
         pass
 
-    def result(self) -> dict:
-        return dict(
-            running_mean=self.running_mean,
-            running_var=self.running_var,
-            weight=self.weight,
-            bias=self.bias
-        )
+    def result(self) -> list:
+        return self.layers
 
     def after_training_epoch(self, strategy: "SupervisedTemplate"):
         model = strategy.model
-        self.running_mean.append(model.bn1.running_mean.mean().item())
-        self.running_var.append(model.bn1.running_var.mean().item())
-        self.weight.append(model.bn1.weight.mean().item())
-        self.bias.append(model.bn1.bias.mean().item())
+        self.layers.append({
+            i: self.__extract_from_bn_layer__(layer)
+            for i, layer in enumerate(model.modules())
+            if type(layer) is torch.nn.BatchNorm2d
+        })
+
+    def __extract_from_bn_layer__(self, bn_layer: torch.nn.BatchNorm2d):
+        return dict(
+            running_mean=torch.norm(bn_layer.running_mean).item(),
+            running_var=torch.norm(bn_layer.running_var).item(),
+            weight=torch.norm(bn_layer.weight).item(),
+            bias=torch.norm(bn_layer.bias).item()
+        )
 
     def __str__(self):
         return "BatchNormTracker"
