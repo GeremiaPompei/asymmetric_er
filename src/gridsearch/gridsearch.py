@@ -88,10 +88,10 @@ def gridsearch(
             if verbose:
                 log.info(f'AAA: {AAA}, accuracy: {accuracy}')
 
-            results['validation'][json.dumps(hyperparams)] = (AAA, accuracy, info)
+            results['validation'][json.dumps(hyperparams)] = dict(AAA=AAA, accuracy=accuracy, info=info)
             __save_record_in_file(file_to_save, strategy_name, results)
 
-        best_hyperparams = json.loads(max({v[0]: k for k, v in results['validation'].items()}.items())[1])
+        best_hyperparams = json.loads(max(results['validation'], key=lambda x: results['validation'][x]['AAA']))
 
         if verbose:
             log.info(f'Best hyperparams: {best_hyperparams}')
@@ -114,10 +114,10 @@ def gridsearch(
             verbose=verbose,
             metrics=metrics,
         )
-        results['test'] = (AAA, accuracy, json.dumps(best_hyperparams), info)
+        results['test'] = dict(AAA=AAA, accuracy=accuracy, hyperparams=json.dumps(best_hyperparams), info=info)
         __save_record_in_file(file_to_save, strategy_name, results)
 
-    AAA, accuracy, best_hyperparams, _ = results['test']
+    AAA, accuracy, best_hyperparams, _ = tuple(results['test'].values())
 
     if verbose:
         log.info(f'Test results: Accuracy={accuracy}, AAA={AAA}')
