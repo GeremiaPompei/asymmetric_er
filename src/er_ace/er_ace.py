@@ -10,14 +10,16 @@ from avalanche.training.plugins.evaluation import (
     EvaluationPlugin,
     default_evaluator,
 )
-from avalanche.training.storage_policy import ClassBalancedBuffer
 from avalanche.training.templates import SupervisedTemplate
 
 from src.er_ace.er_ace_criterion import ACECriterion
-from src.utils.balanced_reservoir_sampling import BalancedReservoirSampling
+from src.buffer_replay.balanced_reservoir_sampling import BalancedReservoirSampling
 
 
 class ER_ACE(SupervisedTemplate):
+    """
+    Class of ER_ACE strategy.
+    """
 
     def __init__(
             self,
@@ -39,6 +41,23 @@ class ER_ACE(SupervisedTemplate):
             eval_every=-1,
             peval_mode="epoch",
     ):
+        """
+        ER_ACE constructor.
+        @param model: Model used for the current strategy.
+        @param optimizer: Optimizer used in the current strategy.
+        @param criterion: Criterion used to compute the base loss (initial loss and buffer loss) for the current strategy.
+        @param n_iters: Number of iteration for each input minibatch before updating the buffer replay.
+        @param mem_size: Buffer replay max memory size.
+        @param batch_size_mem: Buffer replay batch size of sampling.
+        @param train_mb_size: Training minibatch size.
+        @param train_epochs: Training epochs.
+        @param eval_mb_size: Evaluation minibatch size.
+        @param device: Type of accelerator used.
+        @param plugins: Plugins used to monitor the current strategy.
+        @param evaluator: Evaluator to evaluate performance for the current strategy.
+        @param eval_every: The frequency of call eval in training loop.
+        @param peval_mode: Type of event for 'eval_every' call.
+        """
         super().__init__(
             model,
             optimizer,
@@ -64,6 +83,9 @@ class ER_ACE(SupervisedTemplate):
         self.mb_buffer_out = None
 
     def training_epoch(self, **kwargs):
+        """
+        Training epoch method.
+        """
         for self.mbatch in self.dataloader:
             if self._stop_training:
                 break

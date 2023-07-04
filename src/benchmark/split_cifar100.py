@@ -1,11 +1,17 @@
 import numpy as np
-from avalanche.benchmarks import SplitCIFAR100
+from avalanche.benchmarks import SplitCIFAR100, NCScenario
 from torchvision.transforms import transforms, ToTensor
 
 from src.utils import fix_seed
 
 
-def split_cifar100(n_experiences=20, seed=0):
+def split_cifar100(n_experiences: int = 20, seed: int = 0) -> NCScenario:
+    """
+    Function able to load split cifar100 benchmark.
+    @param n_experiences: Number of experience for splitting.
+    @param seed: Seed to guarantee the replication of experiments.
+    @return: Split cifar100 benchmark.
+    """
     fix_seed(seed)
     fixed_class_order = np.arange(100)
     unique_transform = transforms.Compose(

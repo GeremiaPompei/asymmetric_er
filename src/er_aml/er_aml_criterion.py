@@ -1,24 +1,52 @@
 import torch
 import torch.nn.functional as F
-from avalanche.training import ReservoirSamplingBuffer, ClassBalancedBuffer
 
 from src.model.features_map import FeaturesMapModel
 
 
-def normalize(x):
+def normalize(x: torch.Tensor) -> torch.Tensor:
+    """
+    Function able to scale by its norm a certain tensor.
+    @param x: Tensor to normalize.
+    @return: Normalized tensor.
+    """
     x_norm = torch.norm(x, p=2, dim=1).unsqueeze(1).expand_as(x)
     return x / (x_norm + 1e-05)
 
 
 class AMLCriterion:
+    """
+    ER_AML criterion class.
+    """
 
-    def __init__(self, model: FeaturesMapModel, temp=0.1, base_temp=0.07, device='cpu'):
+    def __init__(self, model: FeaturesMapModel, temp: float = 0.1, base_temp: float = 0.07, device: str = 'cpu'):
+        """
+        ER_AML criterion constructor.
+        @param model: Model able to map an input in a latent space. Used only the feature extractor part of the model.
+        @param temp: Supervised contrastive temperature.
+        @param base_temp: Supervised contrastive base temperature.
+        @param device: Accelerator used to speed up the computation.
+        """
         self.device = device
         self.model = model
         self.temp = temp
         self.base_temp = base_temp
 
-    def __compute_pos_neg(self, x_in, y_in, x_buffer, y_buffer):
+    def __sample_pos_neg(
+            self,
+            x_in: torch.Tensor,
+            y_in: torch.Tensor,
+            x_buffer: torch.Tensor,
+            y_buffer: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+        Method able to sample positive and negative examples with respect the input minibatch from input and buffer minibatches.
+        @param x_in: Input of new minibatch.
+        @param y_in: Output of new minibatch.
+        @param x_buffer: Input of buffer minibatch.
+        @param y_buffer: Output of buffer minibatch.
+        @return: Tuple of positive and negative input and output examples and a mask for identify invalid values.
+        """
         x_all = torch.cat((x_buffer, x_in))
         y_all = torch.cat((y_buffer, y_in))
         indexes = torch.arange(y_all.shape[0]).to(self.device)
@@ -47,9 +75,23 @@ class AMLCriterion:
         neg_x = x_all[neg_idx]
         neg_y = y_all[neg_idx]
 
-        return (pos_x, pos_y), (neg_x, neg_y), is_invalid
+        return pos_x, pos_y, neg_x, neg_y, is_invalid
 
-    def __sup_con_loss(self, anchor_features, features, anchor_targets, targets):
+    def __sup_con_loss(
+            self,
+            anchor_features: torch.Tensor,
+            features: torch.Tensor,
+            anchor_targets: torch.Tensor,
+            targets: torch.Tensor
+    ) -> torch.Tensor:
+        """
+        Method able to compute the supervised contrastive loss of new minibatch.
+        @param anchor_features: Anchor features related to new minibatch duplicated mapped in latent space.
+        @param features: Features related to half positive and half negative examples mapped in latent space.
+        @param anchor_targets: Labels related to anchor features.
+        @param targets: Labels related to features.
+        @return: Supervised contrastive loss.
+        """
         pos_mask = (anchor_targets.reshape(-1, 1) == targets.reshape(1, -1)).float().to(self.device)
         similarity = anchor_features @ features.T / self.temp
         similarity -= similarity.max(dim=1)[0].detach()
@@ -60,14 +102,23 @@ class AMLCriterion:
 
     def __call__(
             self,
-            input_in,
-            target_in,
-            output_buffer,
-            target_buffer,
-            reservoir_sampling_data
-    ):
-        x_buffer, y_buffer, _ = reservoir_sampling_data
-        (pos_x, pos_y), (neg_x, neg_y), is_invalid = self.__compute_pos_neg(input_in, target_in, x_buffer, y_buffer)
+            input_in: torch.Tensor,
+            target_in: torch.Tensor,
+            output_buffer: torch.Tensor,
+            target_buffer: torch.Tensor,
+            buffer_replay_data: tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+    ) -> torch.Tensor:
+        """
+        Method able to compute the ER_AML loss.
+        @param input_in: New inputs examples.
+        @param target_in: Labels of new examples.
+        @param output_buffer: Predictions of samples from buffer.
+        @param target_buffer: Labels of samples from buffer.
+        @param buffer_replay_data: Buffer replay data to compute positive and negative samples.
+        @return: ER_AML computed loss.
+        """
+        x_buffer, y_buffer, _ = buffer_replay_data
+        pos_x, pos_y, neg_x, neg_y, is_invalid = self.__sample_pos_neg(input_in, target_in, x_buffer, y_buffer)
         loss_buffer = F.cross_entropy(output_buffer, target_buffer)
         hidden_in = normalize(self.model.return_hidden(input_in)[~is_invalid])
 
