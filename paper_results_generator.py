@@ -11,6 +11,10 @@ from src.utils import log
 
 
 def main():
+    """
+    Main function of paper results generator file able to compute results related to the gridsearch function run for
+    each strategy to compare.
+    """
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     configs = [

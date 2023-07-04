@@ -2,3 +2,6 @@ avalanche-lib @ git+https://github.com/ContinualAI/avalanche@b354713efa0fec11750
 torch~=1.13.0.dev20221006
 tqdm~=4.65.0
 numpy~=1.23.3
+matplotlib~=3.7.1
+pandas~=1.5.3
+torchvision~=0.15.0.dev20221006

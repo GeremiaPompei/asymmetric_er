@@ -22,7 +22,7 @@ def gridsearch(
         device: str = 'cpu',
         verbose: bool = True,
         seed: int = 0,
-        file_to_save: Union[None, str] = None,
+        file_to_save: str = None,
         name: Union[None, str] = None,
         plugins: list = [],
 ) -> dict:

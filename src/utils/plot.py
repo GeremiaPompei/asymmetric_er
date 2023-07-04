@@ -6,6 +6,13 @@ import pandas as pd
 
 
 def extract_accuracy_table(history: dict) -> dict:
+    """
+    Function able to extract from a dictionary of (strategy_name, strategy_results) a dictionary of (strategy_name,
+    accuracy_table). The accuracy table is a square matrix (list of list) composed by accuracies of each experience
+    computed each time that a new experience is learned.
+    @param history: History of strategies results.
+    @return: Dictionary of accuracy tables.
+    """
     return {
         k: [
             [
@@ -18,7 +25,12 @@ def extract_accuracy_table(history: dict) -> dict:
     }
 
 
-def plot_general_results(history: dict):
+def plot_general_results(history: dict) -> pd.DataFrame:
+    """
+    Function able to extract a dataframe with general information related to strategies results.
+    @param history: History of strategies results.
+    @return: Dataframe with general info.
+    """
     to_perc = lambda x: f'{round(x * 100, 2)} %'
     return pd.DataFrame({
         k: dict(
@@ -31,6 +43,12 @@ def plot_general_results(history: dict):
 
 
 def plot_over_experiences(history: dict, xlabel: str, ylabel: str):
+    """
+    Function able to plot data over experiences.
+    @param history: Dictionary of data to plot.
+    @param xlabel: Name of x label.
+    @param ylabel: Name of y label.
+    """
     plt.figure(figsize=(20, 10))
     for k, v in history.items():
         plt.plot(v, label=k)
@@ -42,6 +60,10 @@ def plot_over_experiences(history: dict, xlabel: str, ylabel: str):
 
 
 def plot_forgetting(history: dict):
+    """
+    Function able to plot an histogram of forgetting for each experience..
+    @param history: Dictionary of data to use to compute the forgetting.
+    """
     accuracy_table = extract_accuracy_table(history)
     forgetting = {}
 
@@ -56,6 +78,10 @@ def plot_forgetting(history: dict):
 
 
 def plot_accuracy_tables(history: dict):
+    """
+    Function able to plot accuracy tables for each strategy.
+    @param history: Dictionary of data to use to extract accuracy table.
+    """
     accuracy_table = extract_accuracy_table(history)
     for name, data in accuracy_table.items():
         plt.figure(figsize=(20, 10))
@@ -70,8 +96,14 @@ def plot_accuracy_tables(history: dict):
         plt.show()
 
 
-def plot_bn_over_epochs(results: dict, layers: list[str], bn_feature: str):
-    layer_info = {k: v['bn_tracker'] for k, v in results.items()}
+def plot_bn_over_epochs(history: dict, layers: list[str], bn_feature: str):
+    """
+    Function able to plot a batch normalization feature over epochs.
+    @param history: Dictionary of results where extract dn features.
+    @param layers: List of layers to plot.
+    @param bn_feature: Batch normalization feature to plot.
+    """
+    layer_info = {k: v['bn_tracker'] for k, v in history.items()}
     y = 2
     x = math.ceil(len(layers) / y)
     fig, ax = plt.subplots(x, y, figsize=(20, 7 * x))

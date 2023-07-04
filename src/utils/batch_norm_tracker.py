@@ -1,8 +1,6 @@
 import torch
 from avalanche.evaluation import PluginMetric
 
-from src.model.resnet18 import ResNet
-
 
 class BatchNormTracker(PluginMetric[list]):
 

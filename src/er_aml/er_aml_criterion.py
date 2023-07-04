@@ -2,16 +2,7 @@ import torch
 import torch.nn.functional as F
 
 from src.model.features_map import FeaturesMapModel
-
-
-def normalize(x: torch.Tensor) -> torch.Tensor:
-    """
-    Function able to scale by its norm a certain tensor.
-    @param x: Tensor to normalize.
-    @return: Normalized tensor.
-    """
-    x_norm = torch.norm(x, p=2, dim=1).unsqueeze(1).expand_as(x)
-    return x / (x_norm + 1e-05)
+from src.utils.transformations import scale_by_norm
 
 
 class AMLCriterion:
@@ -120,9 +111,9 @@ class AMLCriterion:
         x_buffer, y_buffer, _ = buffer_replay_data
         pos_x, pos_y, neg_x, neg_y, is_invalid = self.__sample_pos_neg(input_in, target_in, x_buffer, y_buffer)
         loss_buffer = F.cross_entropy(output_buffer, target_buffer)
-        hidden_in = normalize(self.model.return_hidden(input_in)[~is_invalid])
+        hidden_in = scale_by_norm(self.model.return_hidden(input_in)[~is_invalid])
 
-        hidden_pos_neg = normalize(self.model.return_hidden(torch.cat((pos_x, neg_x))))
+        hidden_pos_neg = scale_by_norm(self.model.return_hidden(torch.cat((pos_x, neg_x))))
         pos_h, neg_h = hidden_pos_neg.reshape(2, pos_x.shape[0], -1)[:, ~is_invalid]
 
         loss_in = self.__sup_con_loss(

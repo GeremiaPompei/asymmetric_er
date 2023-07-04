@@ -13,6 +13,11 @@ from src.utils.fs import save_record_in_file, read_file
 
 
 def main():
+    """
+    Main function of niters results generator file able to compute results related to the run of strategies ER_AML and
+    ER_ACE with different niters param to study the behavior of them. The main focus is related to the change of batch
+    normalization features.
+    """
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     file_to_save = 'niters_results.json'
 
