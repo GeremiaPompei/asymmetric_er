@@ -1,7 +1,5 @@
 import itertools
 import json
-import os.path
-from ctypes import Union
 from typing import Callable
 
 from avalanche.benchmarks import benchmark_with_validation_stream
@@ -15,7 +13,7 @@ def gridsearch(
         strategy_builder: Callable,
         benchmark_builder: Callable,
         model_builder: Callable,
-        hyperparams_list: Union[list, dict],
+        hyperparams_list: list,
         validation_size: float = 0.2,
         n_experiences: int = 20,
         num_workers: int = 2,
@@ -23,7 +21,7 @@ def gridsearch(
         verbose: bool = True,
         seed: int = 0,
         file_to_save: str = None,
-        name: Union[None, str] = None,
+        name: str = None,
         plugins: list = [],
 ) -> dict:
     """
@@ -66,45 +64,39 @@ def gridsearch(
     if try_to_read is not None and strategy_name in try_to_read:
         results = try_to_read[strategy_name]
 
-    if len(hyperparams_list) > 1:
+    if verbose:
+        log.info('Start of validation...')
+    for i, hyperparams in enumerate(hyperparams_list):
+        log.info(f'Hyperparams config number {i + 1}/{len(hyperparams_list)}: {hyperparams}')
 
+        stored_hyperparams_hash = [hash(k) for k in results['validation']]
+        current_hash = hash(json.dumps(hyperparams))
+        if current_hash in stored_hyperparams_hash:
+            continue
+
+        AAA, accuracy, info = run_strategy(
+            strategy_builder=strategy_builder,
+            train_stream=benchmark_validation.train_stream,
+            eval_stream=benchmark_validation.valid_stream,
+            model_builder=model_builder,
+            hyperparams=hyperparams,
+            n_classes=n_classes,
+            num_workers=num_workers,
+            device=device,
+            verbose=verbose,
+            plugins=plugins,
+        )
         if verbose:
-            log.info('Start of validation...')
-        for i, hyperparams in enumerate(hyperparams_list):
-            log.info(f'Hyperparams config number {i + 1}/{len(hyperparams_list)}: {hyperparams}')
+            log.info(f'AAA: {AAA}, accuracy: {accuracy}')
 
-            stored_hyperparams_hash = [hash(k) for k in results['validation']]
-            current_hash = hash(json.dumps(hyperparams))
-            if current_hash in stored_hyperparams_hash:
-                continue
+        results['validation'][json.dumps(hyperparams)] = dict(AAA=AAA, accuracy=accuracy, info=info)
+        save_record_in_file(file_to_save, strategy_name, results)
 
-            AAA, accuracy, info = run_strategy(
-                strategy_builder=strategy_builder,
-                train_stream=benchmark_validation.train_stream,
-                eval_stream=benchmark_validation.valid_stream,
-                model_builder=model_builder,
-                hyperparams=hyperparams,
-                n_classes=n_classes,
-                num_workers=num_workers,
-                device=device,
-                verbose=verbose,
-                plugins=plugins,
-            )
-            if verbose:
-                log.info(f'AAA: {AAA}, accuracy: {accuracy}')
+    best_hyperparams = json.loads(max(results['validation'], key=lambda x: results['validation'][x]['AAA']))
 
-            results['validation'][json.dumps(hyperparams)] = dict(AAA=AAA, accuracy=accuracy, info=info)
-            save_record_in_file(file_to_save, strategy_name, results)
-
-        best_hyperparams = json.loads(max(results['validation'], key=lambda x: results['validation'][x]['AAA']))
-
-        if verbose:
-            log.info(f'Best hyperparams: {best_hyperparams}')
-            log.info('End of validation...')
-
-    else:
-
-        best_hyperparams = hyperparams_list[0]
+    if verbose:
+        log.info(f'Best hyperparams: {best_hyperparams}')
+        log.info('End of validation...')
 
     if results['test'] is None:
         AAA, accuracy, info = run_strategy(
