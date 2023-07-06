@@ -24,6 +24,22 @@ def main():
     configs = [
         *[
             (
+                'ER_ACE',
+                ER_ACE,
+                dict(
+                    strategy_train_mb_size=10,
+                    strategy_eval_mb_size=10,
+                    strategy_train_epochs=1,
+                    strategy_mem_size=100 * 100,
+                    strategy_batch_size_mem=10,
+                    strategy_n_iters=i,
+                    sgd_lr=0.1,
+                    sgd_momentum=0
+                )
+            ) for i in [1, 2, 4]
+        ],
+        *[
+            (
                 'ER_AML',
                 ER_AML,
                 dict(
@@ -38,22 +54,6 @@ def main():
                     sgd_momentum=0
                 )
             ) for i in [1, 2, 4]
-        ],
-        *[
-            (
-                'ER_ACE',
-                ER_ACE,
-                dict(
-                    strategy_train_mb_size=10,
-                    strategy_eval_mb_size=10,
-                    strategy_train_epochs=1,
-                    strategy_mem_size=100 * 100,
-                    strategy_batch_size_mem=10,
-                    strategy_n_iters=i,
-                    sgd_lr=0.1,
-                    sgd_momentum=0
-                )
-            ) for i in [1, 2, 4, 8, 16]
         ],
     ]
 

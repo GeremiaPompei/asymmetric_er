@@ -105,16 +105,17 @@ def plot_bn_over_epochs(history: dict, n_layer: int, initial_offset: int = 0):
     """
     new_data = {k: v['bn_tracker']['new'] for k, v in history.items()}
     buffer_data = {k: v['bn_tracker']['buffer'] for k, v in history.items()}
-    fig, ax = plt.subplots(len(new_data), 2, figsize=(20, 7 * len(new_data)))
+    fig, ax = plt.subplots(len(new_data) // 2, 4, figsize=(20, 3.5 * len(new_data)))
     for row, strategy_name in enumerate(new_data):
-        for i_feature, bn_feature in enumerate(['mean', 'std']):
-            axis = ax[row, i_feature] if len(new_data) > 1 else ax[i_feature]
+        for col, bn_feature in enumerate(['mean', 'std']):
+            k = (len(new_data) // 2)
+            axis = ax[row % k, col + (row // k * 2)] if len(new_data) > 1 else ax[col]
             if row >= len(new_data):
                 axis.remove()
             else:
                 axis.set_title(f'{strategy_name} - {n_layer} bn layer - {bn_feature}')
-                axis.plot([v[n_layer][i_feature] for v in new_data[strategy_name]][initial_offset:], label=f'new data')
-                axis.plot([v[n_layer][i_feature] for v in buffer_data[strategy_name]][initial_offset:], label=f'buffer data')
+                axis.plot([v[n_layer][col] for v in new_data[strategy_name]][initial_offset:], label=f'new data')
+                axis.plot([v[n_layer][col] for v in buffer_data[strategy_name]][initial_offset:], label=f'buffer data')
                 axis.set_xlabel('iterations')
                 axis.set_ylabel(bn_feature)
                 axis.grid(True)
