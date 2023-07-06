@@ -2,6 +2,7 @@ import json
 import math
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 
 
@@ -96,28 +97,83 @@ def plot_accuracy_tables(history: dict):
         plt.show()
 
 
-def plot_bn_over_epochs(history: dict, n_layer: int, initial_offset: int = 0):
+def plot_bn_stats_over_epochs(
+        history: dict,
+        n_layer: int,
+        smoothness_degree: int = 50,
+        initial_offset: int = 100,
+):
     """
     Function able to plot a batch normalization feature over epochs.
     @param history: Dictionary of results where extract dn features.
     @param n_layer: Index of bn layer to plot.
-    @param initial_offset: Parameter able to discard previous noisy values.
+    @param smoothness_degree: Smoothness degree.
+    @param initial_offset: Number of initial values to cut out.
     """
     new_data = {k: v['bn_tracker']['new'] for k, v in history.items()}
     buffer_data = {k: v['bn_tracker']['buffer'] for k, v in history.items()}
     fig, ax = plt.subplots(len(new_data) // 2, 4, figsize=(20, 3.5 * len(new_data)))
+
+    def smooth(x):
+        return np.convolve(x[initial_offset:], np.ones((smoothness_degree,)), 'same')
+
     for row, strategy_name in enumerate(new_data):
         for col, bn_feature in enumerate(['mean', 'std']):
             k = (len(new_data) // 2)
-            axis = ax[row % k, col + (row // k * 2)] if len(new_data) > 1 else ax[col]
+            axis = ax[row % k, col + (row // k * 2)]
             if row >= len(new_data):
                 axis.remove()
             else:
                 axis.set_title(f'{strategy_name} - {n_layer} bn layer - {bn_feature}')
-                axis.plot([v[n_layer][col] for v in new_data[strategy_name]][initial_offset:], label=f'new data')
-                axis.plot([v[n_layer][col] for v in buffer_data[strategy_name]][initial_offset:], label=f'buffer data')
+
+                new_data_list = np.array([v[n_layer][col] for v in new_data[strategy_name]])
+                buffer_data_list = np.array([v[n_layer][col] for v in buffer_data[strategy_name]])
+
+                axis.plot(smooth(new_data_list), label=f'new data')
+                axis.plot(smooth(buffer_data_list), label=f'buffer data')
+
                 axis.set_xlabel('iterations')
                 axis.set_ylabel(bn_feature)
                 axis.grid(True)
                 axis.legend()
+    plt.show()
+
+
+def plot_bn_difference_over_epochs(
+        history: dict,
+        n_layer: int,
+        smoothness_degree: int = 50,
+        initial_offset: int = 100,
+):
+    """
+    Function able to plot a batch normalization feature over epochs.
+    @param history: Dictionary of results where extract dn features.
+    @param n_layer: Index of bn layer to plot.
+    @param smoothness_degree: Smoothness degree.
+    @param initial_offset: Number of initial values to cut out.
+    """
+    new_data = {k: v['bn_tracker']['new'] for k, v in history.items()}
+    buffer_data = {k: v['bn_tracker']['buffer'] for k, v in history.items()}
+    fig, ax = plt.subplots(1, 4, figsize=(20, 7))
+
+    def smooth(x):
+        return np.convolve(x[initial_offset:], np.ones((smoothness_degree,)), 'same')
+
+    for m, prefix in enumerate(['ER_ACE', 'ER_AML']):
+        for col, bn_feature in enumerate(['mean', 'std']):
+            axis = ax[col + 2 * m]
+
+            axis.set_title(f'{n_layer} bn layer - {bn_feature}')
+
+            for row, strategy_name in enumerate(new_data):
+                if strategy_name.startswith(prefix):
+                    new_data_list = np.array([v[n_layer][col] for v in new_data[strategy_name]])
+                    buffer_data_list = np.array([v[n_layer][col] for v in buffer_data[strategy_name]])
+                    axis.plot(smooth((new_data_list - buffer_data_list) ** 2), label=f'{strategy_name} difference')
+
+            axis.set_xlabel('iterations')
+            axis.set_ylabel(bn_feature)
+            axis.grid(True)
+            axis.legend()
+
     plt.show()
