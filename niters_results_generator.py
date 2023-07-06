@@ -1,7 +1,5 @@
 import json
 
-import torch
-
 from src.benchmark import split_cifar100
 from src.er_ace import ER_ACE
 from src.er_aml import ER_AML
@@ -11,6 +9,8 @@ from src.utils import log
 from src.utils.batch_norm_tracker import BatchNormTracker
 from src.utils.fs import save_record_in_file, read_file
 
+from src.utils.select_device import select_device
+
 
 def main():
     """
@@ -18,12 +18,13 @@ def main():
     ER_ACE with different niters param to study the behavior of them. The main focus is related to the change of batch
     normalization features.
     """
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    device = select_device()
     file_to_save = 'niters_results.json'
 
     configs = [
         *[
             (
+                'ER_AML',
                 ER_AML,
                 dict(
                     strategy_train_mb_size=10,
@@ -40,6 +41,7 @@ def main():
         ],
         *[
             (
+                'ER_ACE',
                 ER_ACE,
                 dict(
                     strategy_train_mb_size=10,
@@ -51,13 +53,14 @@ def main():
                     sgd_lr=0.1,
                     sgd_momentum=0
                 )
-            ) for i in [1, 2, 4]
-        ]
+            ) for i in [1, 2, 4, 8, 16]
+        ],
     ]
 
     try_read_file = read_file(file_to_save)
-    for strategy_builder, hyperparams in configs:
-        strategy_name = f'{strategy_builder.__name__} [niters={hyperparams["strategy_n_iters"]}]'
+    for strategy_name, strategy_builder, hyperparams in configs:
+        if "strategy_n_iters" in hyperparams:
+            strategy_name += f' [niters={hyperparams["strategy_n_iters"]}]'
         log.info(f'STRATEGY "{strategy_name}"')
         if try_read_file is not None and strategy_name in try_read_file:
             continue

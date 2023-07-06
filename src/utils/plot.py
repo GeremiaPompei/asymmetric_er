@@ -96,28 +96,27 @@ def plot_accuracy_tables(history: dict):
         plt.show()
 
 
-def plot_bn_over_epochs(history: dict, layers: list[str], bn_feature: str):
+def plot_bn_over_epochs(history: dict, n_layer: int, initial_offset: int = 0):
     """
     Function able to plot a batch normalization feature over epochs.
     @param history: Dictionary of results where extract dn features.
-    @param layers: List of layers to plot.
-    @param bn_feature: Batch normalization feature to plot.
+    @param n_layer: Index of bn layer to plot.
+    @param initial_offset: Parameter able to discard previous noisy values.
     """
-    layer_info = {k: v['bn_tracker'] for k, v in history.items()}
-    y = 2
-    x = math.ceil(len(layers) / y)
-    fig, ax = plt.subplots(x, y, figsize=(20, 7 * x))
-    for i in range(x * y):
-        axis = ax[i // y, i % y]
-        if i >= len(layers):
-            axis.remove()
-        else:
-            layer = layers[i]
-            axis.set_title(f'{layer} bn layer')
-            for str_name, bn_info in layer_info.items():
-                axis.plot([v[layer][bn_feature] for v in bn_info], label=str_name)
-            axis.set_xlabel('epochs')
-            axis.set_ylabel(f'{bn_feature} norm')
-            axis.grid(True)
-            axis.legend()
+    new_data = {k: v['bn_tracker']['new'] for k, v in history.items()}
+    buffer_data = {k: v['bn_tracker']['buffer'] for k, v in history.items()}
+    fig, ax = plt.subplots(len(new_data), 2, figsize=(20, 7 * len(new_data)))
+    for row, strategy_name in enumerate(new_data):
+        for i_feature, bn_feature in enumerate(['mean', 'std']):
+            axis = ax[row, i_feature] if len(new_data) > 1 else ax[i_feature]
+            if row >= len(new_data):
+                axis.remove()
+            else:
+                axis.set_title(f'{strategy_name} - {n_layer} bn layer - {bn_feature}')
+                axis.plot([v[n_layer][i_feature] for v in new_data[strategy_name]][initial_offset:], label=f'new data')
+                axis.plot([v[n_layer][i_feature] for v in buffer_data[strategy_name]][initial_offset:], label=f'buffer data')
+                axis.set_xlabel('iterations')
+                axis.set_ylabel(bn_feature)
+                axis.grid(True)
+                axis.legend()
     plt.show()

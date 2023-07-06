@@ -8,6 +8,7 @@ from src.er_aml import ER_AML
 from src.gridsearch import gridsearch
 from src.model import ResNet18
 from src.utils import log
+from src.utils.select_device import select_device
 
 
 def main():
@@ -15,7 +16,7 @@ def main():
     Main function of paper results generator file able to compute results related to the gridsearch function run for
     each strategy to compare.
     """
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    device = select_device()
 
     configs = [
         (
