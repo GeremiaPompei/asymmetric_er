@@ -110,9 +110,10 @@ def plot_bn_stats_over_epochs(
     @param smoothness_degree: Smoothness degree.
     @param initial_offset: Number of initial values to cut out.
     """
-    new_data = {k: v['bn_tracker']['new'] for k, v in history.items()}
-    buffer_data = {k: v['bn_tracker']['buffer'] for k, v in history.items()}
-    fig, ax = plt.subplots(len(new_data) // 2, 4, figsize=(20, 3.5 * len(new_data)))
+    new_data = {k: v['bn_info']['new'] for k, v in history.items()}
+    buffer_data = {k: v['bn_info']['buffer'] for k, v in history.items()}
+
+    fig, ax = plt.subplots(len(new_data) // 2, 4, figsize=(20, 3 * len(new_data)))
 
     def smooth(x):
         return np.convolve(x[initial_offset:], np.ones((smoothness_degree,)), 'same')
@@ -120,7 +121,7 @@ def plot_bn_stats_over_epochs(
     for row, strategy_name in enumerate(new_data):
         for col, bn_feature in enumerate(['mean', 'std']):
             k = (len(new_data) // 2)
-            axis = ax[row % k, col + (row // k * 2)]
+            axis = ax[row % k, col + (row // k * 2)] if len(new_data) // 2 > 1 else ax[col + (row // k * 2)]
             if row >= len(new_data):
                 axis.remove()
             else:
@@ -152,9 +153,9 @@ def plot_bn_difference_over_epochs(
     @param smoothness_degree: Smoothness degree.
     @param initial_offset: Number of initial values to cut out.
     """
-    new_data = {k: v['bn_tracker']['new'] for k, v in history.items()}
-    buffer_data = {k: v['bn_tracker']['buffer'] for k, v in history.items()}
-    fig, ax = plt.subplots(1, 4, figsize=(20, 7))
+    new_data = {k: v['bn_info']['new'] for k, v in history.items()}
+    buffer_data = {k: v['bn_info']['buffer'] for k, v in history.items()}
+    fig, ax = plt.subplots(1, 4, figsize=(20, 4))
 
     def smooth(x):
         return np.convolve(x[initial_offset:], np.ones((smoothness_degree,)), 'same')

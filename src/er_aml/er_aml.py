@@ -113,20 +113,25 @@ class ER_AML(SupervisedTemplate):
                 # Forward
                 self._before_forward(**kwargs)
 
-                if self.cat_old_new:
-                    mb_out = avalanche_forward(
-                        self.model, torch.cat((self.mb_x, self.mb_buffer_x)),
-                        torch.cat((self.mb_task_id, self.mb_buffer_tid))
-                    )
-                    self.mb_output = mb_out[:self.train_mb_size]
-                    self.mb_buffer_out = mb_out[self.train_mb_size:]
-                else:
+                if not available_buffer:
                     self.mb_output = avalanche_forward(
                         self.model, self.mb_x, self.mb_task_id
                     )
-                    self.mb_buffer_out = avalanche_forward(
-                        self.model, self.mb_buffer_x, self.mb_buffer_tid
-                    )
+                else:
+                    if self.cat_old_new:
+                        mb_out = avalanche_forward(
+                            self.model, torch.cat((self.mb_x, self.mb_buffer_x)),
+                            torch.cat((self.mb_task_id, self.mb_buffer_tid))
+                        )
+                        self.mb_output = mb_out[:self.train_mb_size]
+                        self.mb_buffer_out = mb_out[self.train_mb_size:]
+                    else:
+                        self.mb_output = avalanche_forward(
+                            self.model, self.mb_x, self.mb_task_id
+                        )
+                        self.mb_buffer_out = avalanche_forward(
+                            self.model, self.mb_buffer_x, self.mb_buffer_tid
+                        )
 
                 self._after_forward(**kwargs)
 

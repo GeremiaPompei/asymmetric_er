@@ -8,7 +8,7 @@ class MonitorModelBNLayers:
     Class able to provide a way to monitor and store batch normalization activations mean and std for each model bn layer.
     """
 
-    def __init__(self, model: torch.Module):
+    def __init__(self, model):
         """
         MonitorModelBNLayers constructor.
         @param model: Model to monitor.
@@ -36,7 +36,7 @@ class MonitorModelBNLayers:
                 )
             )
 
-    def monitor(self, model: torch.Module, inputs: torch.Tensor, data_label: str):
+    def monitor(self, model, inputs: torch.Tensor, data_label: str):
         """
         Method able to monitor each layer.
         @param model: Model to monitor used here to launch the inference.
