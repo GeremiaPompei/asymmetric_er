@@ -3,9 +3,16 @@ from avalanche.evaluation import PluginMetric
 from avalanche.training.templates import SupervisedTemplate
 
 
-class MonitorLayer:
+class MonitorModelBNLayers:
+    """
+    Class able to provide a way to monitor and store batch normalization activations mean and std for each model bn layer.
+    """
 
-    def __init__(self, model):
+    def __init__(self, model: torch.Module):
+        """
+        MonitorModelBNLayers constructor.
+        @param model: Model to monitor.
+        """
         self.layers = dict(
             buffer=[],
             new=[]
@@ -17,6 +24,10 @@ class MonitorLayer:
                 layer.register_forward_hook(lambda m, inputs, o: self.monitor_layer(inputs))
 
     def monitor_layer(self, inputs: torch.Tensor):
+        """
+        Method able to monitor a single layer.
+        @param inputs: Input activations.
+        """
         if self.active:
             self.layers[self.data_label][-1].append(
                 (
@@ -25,7 +36,13 @@ class MonitorLayer:
                 )
             )
 
-    def monitor(self, model, inputs, data_label):
+    def monitor(self, model: torch.Module, inputs: torch.Tensor, data_label: str):
+        """
+        Method able to monitor each layer.
+        @param model: Model to monitor used here to launch the inference.
+        @param inputs: input activations.
+        @param data_label: String that represents the label of data type to store statistics. They could be 'new' of 'buffer'.
+        """
         self.data_label = data_label
         self.layers[data_label].append([])
         model(inputs)
@@ -41,7 +58,7 @@ class BatchNormTracker(PluginMetric[dict]):
         Batch normalization tracker constructor.
         """
         super().__init__()
-        self.monitor_layer: MonitorLayer = None
+        self.monitor_layer: MonitorModelBNLayers = None
 
     def reset(self) -> None:
         pass
@@ -56,15 +73,14 @@ class BatchNormTracker(PluginMetric[dict]):
     def before_training(self, strategy: SupervisedTemplate):
         """
         Method able to initialize the monitor layer object before training.
-        @param strategy:
-        @return:
+        @param strategy: Strategy where retrieve the model.
         """
         if self.monitor_layer is None:
-            self.monitor_layer = MonitorLayer(strategy.model)
+            self.monitor_layer = MonitorModelBNLayers(strategy.model)
 
     def before_training_iteration(self, strategy: SupervisedTemplate):
         """
-        Monitor bn layer before training iteration.
+        Monitor bn layers before training iteration.
         @param strategy: Strategy tracked.
         """
         try:

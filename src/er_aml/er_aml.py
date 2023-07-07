@@ -30,6 +30,7 @@ class ER_AML(SupervisedTemplate):
             temp: float = 0.1,
             base_temp: float = 0.07,
             n_iters: int = 1,
+            cat_old_new: bool = False,
             mem_size: int = 200,
             batch_size_mem: int = 10,
             train_mb_size: int = 1,
@@ -52,6 +53,7 @@ class ER_AML(SupervisedTemplate):
         @param temp: Supervised contrastive loss temperature.
         @param base_temp: Supervised contrastive loss base temperature.
         @param n_iters: Number of iteration for each input minibatch before updating the buffer replay.
+        @param cat_old_new: Flag to indicate if the inference is done with new batch and buffer batch concatenated or not.
         @param mem_size: Buffer replay max memory size.
         @param batch_size_mem: Buffer replay batch size of sampling.
         @param train_mb_size: Training minibatch size.
@@ -81,6 +83,7 @@ class ER_AML(SupervisedTemplate):
         self.storage_policy = BalancedReservoirSampling(mem_size=self.mem_size)
         self.aml_criterion = AMLCriterion(model=model, temp=temp, base_temp=base_temp, device=device)
         self.n_iters = n_iters
+        self.cat_old_new = cat_old_new
 
         self.mb_buffer_x = None
         self.mb_buffer_y = None
@@ -109,13 +112,22 @@ class ER_AML(SupervisedTemplate):
 
                 # Forward
                 self._before_forward(**kwargs)
-                self.mb_output = avalanche_forward(
-                    self.model, self.mb_x, self.mb_task_id
-                )
-                if available_buffer:
+
+                if self.cat_old_new:
+                    mb_out = avalanche_forward(
+                        self.model, torch.cat((self.mb_x, self.mb_buffer_x)),
+                        torch.cat((self.mb_task_id, self.mb_buffer_tid))
+                    )
+                    self.mb_output = mb_out[:self.train_mb_size]
+                    self.mb_buffer_out = mb_out[self.train_mb_size:]
+                else:
+                    self.mb_output = avalanche_forward(
+                        self.model, self.mb_x, self.mb_task_id
+                    )
                     self.mb_buffer_out = avalanche_forward(
                         self.model, self.mb_buffer_x, self.mb_buffer_tid
                     )
+
                 self._after_forward(**kwargs)
 
                 # Loss & Backward

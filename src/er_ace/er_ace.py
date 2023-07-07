@@ -27,6 +27,7 @@ class ER_ACE(SupervisedTemplate):
             optimizer: Optimizer,
             criterion=CrossEntropyLoss(),
             n_iters: int = 1,
+            cat_old_new: bool = False,
             mem_size: int = 200,
             batch_size_mem: int = 10,
             train_mb_size: int = 1,
@@ -47,6 +48,7 @@ class ER_ACE(SupervisedTemplate):
         @param optimizer: Optimizer used in the current strategy.
         @param criterion: Criterion used to compute the base loss (initial loss and buffer loss) for the current strategy.
         @param n_iters: Number of iteration for each input minibatch before updating the buffer replay.
+        @param cat_old_new: Flag to indicate if the inference is done with new batch and buffer batch concatenated or not.
         @param mem_size: Buffer replay max memory size.
         @param batch_size_mem: Buffer replay batch size of sampling.
         @param train_mb_size: Training minibatch size.
@@ -76,6 +78,7 @@ class ER_ACE(SupervisedTemplate):
         self.storage_policy = BalancedReservoirSampling(mem_size=self.mem_size)
         self.ace_criterion = ACECriterion()
         self.n_iters = n_iters
+        self.cat_old_new = cat_old_new
 
         self.mb_buffer_x = None
         self.mb_buffer_y = None
@@ -107,10 +110,27 @@ class ER_ACE(SupervisedTemplate):
                 self.mb_output = avalanche_forward(
                     self.model, self.mb_x, self.mb_task_id
                 )
-                if available_buffer:
-                    self.mb_buffer_out = avalanche_forward(
-                        self.model, self.mb_buffer_x, self.mb_buffer_tid
+
+                if not available_buffer:
+                    self.mb_output = avalanche_forward(
+                        self.model, self.mb_x, self.mb_task_id
                     )
+                else:
+                    if self.cat_old_new:
+                        mb_out = avalanche_forward(
+                            self.model, torch.cat((self.mb_x, self.mb_buffer_x)),
+                            torch.cat((self.mb_task_id, self.mb_buffer_tid))
+                        )
+                        self.mb_output = mb_out[:self.train_mb_size]
+                        self.mb_buffer_out = mb_out[self.train_mb_size:]
+                    else:
+                        self.mb_output = avalanche_forward(
+                            self.model, self.mb_x, self.mb_task_id
+                        )
+                        self.mb_buffer_out = avalanche_forward(
+                            self.model, self.mb_buffer_x, self.mb_buffer_tid
+                        )
+
                 self._after_forward(**kwargs)
 
                 # Loss & Backward
